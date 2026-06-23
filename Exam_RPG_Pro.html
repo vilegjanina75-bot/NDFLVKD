@@ -1,0 +1,125 @@
+
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<title>Exam RPG Pro</title>
+<style>
+body{margin:0;font-family:Inter,Arial;background:#0f172a;color:#fff}
+header{padding:20px;background:#111827;position:sticky;top:0}
+.wrap{max-width:1200px;margin:auto;padding:20px}
+.card{background:#1e293b;border-radius:20px;padding:20px;margin:15px 0;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+button{background:#22c55e;color:white;border:none;padding:10px 16px;border-radius:12px;cursor:pointer;margin:4px}
+input{padding:10px;border-radius:10px;border:none;width:100%}
+.progress{height:20px;background:#334155;border-radius:20px;overflow:hidden}
+.bar{height:100%;background:linear-gradient(90deg,#22c55e,#38bdf8);width:0%;transition:.5s}
+#answer{display:none;white-space:pre-wrap;max-height:400px;overflow:auto}
+.fade{animation:fade .3s}@keyframes fade{from{opacity:0}to{opacity:1}}
+</style></head><body>
+<header><h1>🎓 Exam RPG Pro</h1><div id="ready">Готовность: 0%</div></header>
+<div class="wrap">
+<div class="card"><input id="search" placeholder="Поиск по темам..." oninput="filterCards()"></div>
+<div class="card">
+<h2>📚 Флеш-карточки + Anki</h2>
+<h3 id="q"></h3>
+<button onclick="showA()">Показать ответ</button>
+<button onclick="next()">Случайный билет</button>
+<div id="answer"></div>
+</div>
+
+<div class="card">
+<h2>🏆 Прогресс</h2>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<p id="stats"></p>
+</div>
+
+<div class="card">
+<h2>⏱️ Таймер</h2>
+<div id="timer" style="font-size:40px">01:00</div>
+<button onclick="startTimer()">Старт</button>
+</div>
+
+<div class="card">
+<h2>🎯 Самооценка</h2>
+<button onclick="know()">✅ Знаю</button>
+<button onclick="dont()">❌ Повторить</button>
+</div>
+
+<div class="card">
+<h2>👑 Босс экзамена</h2>
+<button onclick="bossMode()">Начать 22 случайных билета</button>
+<div id="boss"></div>
+</div>
+
+<div class="card">
+<h2>📝 Викторина</h2>
+<div id="quiz"></div>
+<button onclick="generateQuiz()">Новый вопрос</button>
+</div>
+</div>
+
+<script>
+const cards=[
+{q:"Билет 1 ВВП ВНП НД",a:"ВВП, ВНП, НД. Формула ВВП=C+I+G+Xn"},
+{q:"Билет 2 Дефлятор и ИПЦ",a:"ИПЦ корзина, дефлятор все товары."},
+{q:"Билет 3 AD и AS",a:"Совокупный спрос и предложение."},
+{q:"Билет 4 Равновесие AD-AS",a:"Точка пересечения AD и AS."},
+{q:"Билет 5 Экономические циклы",a:"Подъем, пик, спад, дно."},
+{q:"Билет 6 Виды циклов",a:"Китчин, Жугляр, Кузнец, Кондратьев."},
+{q:"Билет 7 Инфляция",a:"Ползучая, галопирующая, гиперинфляция."},
+{q:"Билет 8 Антиинфляционная политика",a:"Ставка ЦБ, налоги."},
+{q:"Билет 9 Безработица",a:"Фрикционная, структурная, циклическая."},
+{q:"Билет 10 Закон Оукена",a:"+1% безработицы = -2..3% ВВП."},
+{q:"Билет 11 Кривая Филлипса",a:"Инфляция против безработицы."},
+{q:"Билет 12 Денежные агрегаты",a:"M0 M1 M2 M3."},
+{q:"Билет 13 Спрос на деньги",a:"Трансакционный, предосторожности, спекулятивный."},
+{q:"Билет 14 Банковская система",a:"ЦБ и коммерческие банки."},
+{q:"Билет 15 Налоговая система",a:"Федеральные, региональные, местные."},
+{q:"Билет 16 Виды налогов",a:"Прямые и косвенные."},
+{q:"Билет 17 Госбюджет",a:"Дефицит, профицит, баланс."},
+{q:"Билет 18 Внебюджетные фонды",a:"Социальный фонд и ОМС."},
+{q:"Билет 19 Госдолг",a:"Внутренний и внешний."},
+{q:"Билет 20 Экономический рост",a:"Экстенсивный и интенсивный."},
+{q:"Билет 21 Факторы роста",a:"Труд, капитал, земля, технологии."},
+{q:"Билет 22 Мультипликатор и акселератор",a:"Эффект снежного кома и ускорения."}
+];
+
+let current=0;
+let learned=JSON.parse(localStorage.getItem("learned")||"[]");
+
+function save(){localStorage.setItem("learned",JSON.stringify(learned));update();}
+function render(){
+q.innerText=cards[current].q;
+answer.innerText=cards[current].a;
+answer.style.display='none';
+}
+function showA(){answer.style.display='block';}
+function next(){current=Math.floor(Math.random()*cards.length);render();}
+function know(){if(!learned.includes(current)) learned.push(current);save();next();}
+function dont(){next();}
+function update(){
+let p=Math.round(learned.length/cards.length*100);
+bar.style.width=p+"%";
+stats.innerText=`Выучено ${learned.length}/${cards.length}`;
+ready.innerText="Готовность к экзамену: "+p+"%";
+}
+function startTimer(){
+let s=60;
+let i=setInterval(()=>{
+timer.innerText=("0"+Math.floor(s/60)).slice(-2)+":"+("0"+s%60).slice(-2);
+s--; if(s<0){clearInterval(i);alert("Время!");}
+},1000);
+}
+function bossMode(){
+let shuffled=[...cards].sort(()=>Math.random()-0.5);
+boss.innerHTML="<ol>"+shuffled.map(x=>"<li>"+x.q+"</li>").join("")+"</ol>";
+}
+function generateQuiz(){
+let c=cards[Math.floor(Math.random()*cards.length)];
+let opts=[c.a,"НДС","Кривая Филлипса","Коммерческий банк"].sort(()=>Math.random()-0.5);
+quiz.innerHTML="<b>"+c.q+"</b><br>"+opts.map(o=>`<button onclick="alert('${o==c.a?"Верно!":"Неверно"}')">${o}</button>`).join("");
+}
+function filterCards(){
+let t=search.value.toLowerCase();
+let found=cards.filter(x=>x.q.toLowerCase().includes(t));
+if(found.length){q.innerText=found[0].q;answer.innerText=found[0].a;}
+}
+render();update();generateQuiz();
+</script></body></html>
